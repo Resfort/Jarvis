@@ -15,12 +15,49 @@ import sys
 # Инициализация pyttsx3 для преобразования текста в речь (TTS)
 engine = pyttsx3.init()
 
-# Настройка голоса (попытка установить русский голос, если он есть в системе)
+# Настройка голоса (поиск всех русских голосов)
+ru_voices = []
 voices = engine.getProperty('voices')
 for voice in voices:
     if 'ru' in voice.languages or 'russian' in voice.name.lower() or 'ru_ru' in voice.id.lower():
-        engine.setProperty('voice', voice.id)
-        break
+        ru_voices.append(voice)
+        
+# Устанавливаем первый найденный русский голос по умолчанию
+if ru_voices:
+    engine.setProperty('voice', ru_voices[0].id)
+    
+def change_voice(gender):
+    """
+    Функция для смены голоса на мужской или женский.
+    Успех зависит от установленных голосов в ОС (например, Ирина и Павел).
+    """
+    if not ru_voices:
+        print("Русские голоса не найдены.")
+        return
+        
+    if gender == "male":
+        for v in ru_voices:
+            # Пытаемся найти мужской голос (Павел)
+            if 'pavel' in v.name.lower() or 'муж' in v.name.lower():
+                engine.setProperty('voice', v.id)
+                print("Установлен мужской голос.")
+                return
+        # Если явного мужского нет, пробуем поставить второй из списка
+        if len(ru_voices) > 1:
+            engine.setProperty('voice', ru_voices[1].id)
+            print("Установлен альтернативный голос.")
+        else:
+            print("В системе доступен только один русский голос.")
+            
+    elif gender == "female":
+        for v in ru_voices:
+            # Пытаемся найти женский голос (Ирина)
+            if 'irina' in v.name.lower() or 'жен' in v.name.lower():
+                engine.setProperty('voice', v.id)
+                print("Установлен женский голос.")
+                return
+        if len(ru_voices) > 0:
+            engine.setProperty('voice', ru_voices[0].id)
 
 # Установка скорости речи
 engine.setProperty('rate', 170) 
@@ -87,6 +124,15 @@ if __name__ == "__main__":
     # Устанавливаем русский язык для поиска в Википедии
     wikipedia.set_lang("ru")
     
+    # Словарь программ для открытия (настроено для Windows)
+    # Чтобы добавить свои, напишите название и путь к .exe файлу
+    PROGRAMS = {
+        "блокнот": "notepad.exe",
+        "калькулятор": "calc.exe",
+        "проводник": "explorer.exe",
+        "браузер": "start chrome" # Для открытия Google Chrome
+    }
+    
     # Запуск приветствия
     wish_me()
     
@@ -122,6 +168,29 @@ if __name__ == "__main__":
         elif 'открой github' in query or 'гитхаб' in query:
             speak("Открываю GitHub")
             webbrowser.open("https://github.com")
+
+        # --- НОВЫЕ КОМАНДЫ: Смена голоса ---
+        elif 'включи мужской голос' in query or 'поставь мужской голос' in query:
+            change_voice("male")
+            speak("Теперь я говорю так. Надеюсь, вам нравится.")
+            
+        elif 'включи женский голос' in query or 'поставь женский голос' in query:
+            change_voice("female")
+            speak("Голос успешно изменен на женский.")
+            
+        # --- НОВЫЕ КОМАНДЫ: Открытие программ ---
+        elif 'запусти' in query or 'открой программу' in query:
+            # Ищем название программы из словаря в том, что сказал пользователь
+            found = False
+            for prog_name, prog_path in PROGRAMS.items():
+                if prog_name in query:
+                    speak(f"Запускаю {prog_name}")
+                    os.system(prog_path)
+                    found = True
+                    break
+            
+            if not found:
+                speak("Извините, я не знаю такую программу. Добавьте её в мой словарь.")
 
         elif 'время' in query or 'который час' in query:
             strTime = datetime.datetime.now().strftime("%H:%M")    
